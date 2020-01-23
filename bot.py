@@ -1,4 +1,6 @@
 # pip install python-telegram-bot
+# pip install schedule
+# pip install requests
 import requests
 import schedule
 import telegram.bot
@@ -11,9 +13,6 @@ import json
 import re
 
 bot = telegram.Bot(token=bottoken)
-
-# pip install schedule
-# pip install requests
 
 # pip install pyopenssl
 ip = requests.get('https://api.ipify.org').text
