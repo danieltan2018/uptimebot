@@ -78,7 +78,6 @@ def addsite(update, context):
         return
     try:
         r = requests.get(site, timeout=10)
-        r.raise_for_status()
         sites[user].append(site)
         with open('sites.json', 'w') as sitesfile:
             json.dump(sites, sitesfile)
