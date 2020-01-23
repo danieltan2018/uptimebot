@@ -45,6 +45,7 @@ logging.basicConfig(filename='debug.log', filemode='a+', format='%(asctime)s - %
 logger = logging.getLogger(__name__)
 
 badset = set()
+downset = set()
 
 
 def loader():
@@ -60,7 +61,7 @@ def loader():
 def start(update, context):
     user = str(update.message.chat_id)
     context.bot.send_message(
-        chat_id=user, text='*Website Monitoring Bot*\n_Powered by danieltan.org_\n\nReply to this message to add a site (max 3)', parse_mode=telegram.ParseMode.MARKDOWN)
+        chat_id=user, text='*Website Monitoring Bot*\n_Powered by danieltan.org_\n\nReply to this message to add a site (max 5)', parse_mode=telegram.ParseMode.MARKDOWN)
     global sites
     sites[user] = []
     with open('sites.json', 'w') as sitesfile:
@@ -71,9 +72,9 @@ def addsite(update, context):
     global sites
     site = update.message.text
     user = str(update.message.chat_id)
-    if len(sites[user]) == 3:
+    if len(sites[user]) == 5:
         context.bot.send_message(
-            chat_id=user, text='_Max number of sites reached_', parse_mode=telegram.ParseMode.MARKDOWN)
+            chat_id=user, text='_Max number of sites reached. Use /start to reset your list._', parse_mode=telegram.ParseMode.MARKDOWN)
         return
     try:
         r = requests.get(site, timeout=10)
@@ -107,8 +108,9 @@ def ping(site, user):
     try:
         r = requests.get(site, timeout=10)
         if r.status_code == 200:
-            if site in badset:
-                badset.remove(site)
+            if (site in badset) or (site in downset):
+                badset.discard(site)
+                downset.discard(site)
                 bot.send_message(chat_id=user, text='*Service Restored: *{} is now online'.format(
                     site), parse_mode=telegram.ParseMode.MARKDOWN)
         else:
@@ -118,8 +120,8 @@ def ping(site, user):
                 bot.send_message(chat_id=user, text='*Incident Detected: *HTTP {} error on {}'.format(
                     code, site), parse_mode=telegram.ParseMode.MARKDOWN)
     except Exception as e:
-        if site not in badset:
-            badset.add(site)
+        if site not in downset:
+            downset.add(site)
             bot.send_message(chat_id=user, text='*ALERT: *{} is down\n\n_{}_'.format(site, e),
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -136,7 +138,6 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(MessageHandler(Filters.text, addsite))
-    dp.add_handler(MessageHandler(Filters.all, start))
 
     loader()
 
