@@ -113,9 +113,12 @@ def ping(site, user):
                 bot.send_message(chat_id=user, text='*Service Restored: *{} is now online'.format(
                     site), parse_mode=telegram.ParseMode.MARKDOWN)
         else:
-            if site not in badset:
+            code = str(r.status_code)
+            if site in badset:
+                bot.send_message(chat_id=user, text='*Service Restored: *{} is now online with HTTP {} error'.format(
+                    site, code), parse_mode=telegram.ParseMode.MARKDOWN)
+            else:
                 badset.add(site)
-                code = str(r.status_code)
                 bot.send_message(chat_id=user, text='*Incident Detected: *HTTP {} error on {}'.format(
                     code, site), parse_mode=telegram.ParseMode.MARKDOWN)
     except Exception as e:
