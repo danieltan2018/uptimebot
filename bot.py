@@ -114,7 +114,8 @@ def ping(site, user):
                     site), parse_mode=telegram.ParseMode.MARKDOWN)
         else:
             code = str(r.status_code)
-            if site in badset:
+            if site in badset and site in downset:
+                downset.discard(site)
                 bot.send_message(chat_id=user, text='*Service Restored: *{} is now online with HTTP {} error'.format(
                     site, code), parse_mode=telegram.ParseMode.MARKDOWN)
             else:
