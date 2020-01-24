@@ -130,6 +130,22 @@ def ping(site, user):
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
 
+def init():
+    for user in sites:
+        for site in sites[user]:
+            genset(site)
+
+
+@run_async
+def genset(site):
+    try:
+        r = requests.get(site, timeout=10)
+        if r.status_code != 200:
+            badset.add(site)
+    except:
+        downset.add(site)
+
+
 @run_async
 def sendnew(context, user_id, compose):
     context.bot.send_message(
@@ -144,6 +160,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.text, addsite))
 
     loader()
+    init()
 
     # updater.start_polling()
     updater.start_webhook(listen='0.0.0.0',
