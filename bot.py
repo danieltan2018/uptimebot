@@ -11,6 +11,7 @@ import time
 from params import bottoken, port
 import json
 import re
+import subprocess
 
 bot = telegram.Bot(token=bottoken)
 
@@ -46,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 badset = set()
 downset = set()
+revival = False
 
 
 def loader():
@@ -97,6 +99,8 @@ def scheduler():
 
 
 def check():
+    global revival
+    revival = False
     for user in sites:
         for site in sites[user]:
             ping(site, user)
@@ -128,6 +132,20 @@ def ping(site, user):
             downset.add(site)
             bot.send_message(chat_id=user, text='*ALERT: *{} is down\n\n_{}_'.format(site, e),
                              parse_mode=telegram.ParseMode.MARKDOWN)
+            if 'smusis' in site and revival == False:
+                revival = True
+                revive()
+                bot.send_message(chat_id=user, text='*START COMMAND ISSUED*\n\n_Bot is attempting to automatically revive this machine._',
+                                 parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+@run_async
+def revive():
+    process = subprocess.Popen(['aws', 'ec2', 'start-instances', '--instance-ids', 'i-0aa899d4c8337fcff', 'i-00d661d3c98d82f55'],
+                               stdout=subprocess.PIPE,
+                               universal_newlines=True)
+    for output in process.stdout.readlines():
+        print(output.strip())
 
 
 def init():
