@@ -132,11 +132,12 @@ def ping(site, user):
             downset.add(site)
             bot.send_message(chat_id=user, text='*ALERT: *{} is down\n\n_{}_'.format(site, e),
                              parse_mode=telegram.ParseMode.MARKDOWN)
-            if 'smusis' in site and revival == False:
-                revival = True
-                revive()
-                bot.send_message(chat_id=user, text='*START COMMAND ISSUED*\n\n_Bot is attempting to automatically revive this machine._',
-                                 parse_mode=telegram.ParseMode.MARKDOWN)
+        global revival
+        if 'smusis' in site and revival == False:
+            revival = True
+            revive()
+            bot.send_message(chat_id=user, text='*START COMMAND ISSUED*\n\n_Bot is attempting to automatically revive this machine._',
+                             parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 @run_async
