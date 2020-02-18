@@ -133,7 +133,7 @@ def ping(site, user):
             bot.send_message(chat_id=user, text='*ALERT: *{} is down\n\n_{}_'.format(site, e),
                              parse_mode=telegram.ParseMode.MARKDOWN)
         global revival
-        if 'smusis' in site and revival == False:
+        if 'testpoint' in site and revival == False:
             revival = True
             revive()
             bot.send_message(chat_id=user, text='*START COMMAND ISSUED*\n\n_Bot is attempting to automatically revive this machine._',
@@ -142,7 +142,7 @@ def ping(site, user):
 
 @run_async
 def revive():
-    process = subprocess.Popen(['aws', 'ec2', 'start-instances', '--instance-ids', 'i-0aa899d4c8337fcff', 'i-00d661d3c98d82f55'],
+    process = subprocess.Popen(['aws', 'ec2', 'start-instances', '--instance-ids', 'i-07ad6d8f1ea92d61b'],
                                stdout=subprocess.PIPE,
                                universal_newlines=True)
     for output in process.stdout.readlines():
