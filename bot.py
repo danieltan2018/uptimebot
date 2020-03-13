@@ -1,7 +1,9 @@
 # pip install python-telegram-bot
 # pip install schedule
 # pip install requests
+# pip install beautifulsoup4
 import requests
+from bs4 import BeautifulSoup
 import schedule
 import telegram.bot
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
@@ -58,6 +60,13 @@ def loader():
     except:
         with open('sites.json', 'w+') as sitesfile:
             sites = {}
+    global cache
+    try:
+        with open('cache.json') as cachefile:
+            cache = json.load(cachefile)
+    except:
+        with open('cache.json', 'w+') as cachefile:
+            cache = {}
 
 
 def start(update, context):
@@ -79,12 +88,14 @@ def addsite(update, context):
             chat_id=user, text='_Max number of sites reached. Use /start to reset your list._', parse_mode=telegram.ParseMode.MARKDOWN)
         return
     try:
-        r = requests.get(site, timeout=10)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36"}
+        r = requests.get(site, headers=headers, timeout=10)
         sites[user].append(site)
         with open('sites.json', 'w') as sitesfile:
             json.dump(sites, sitesfile)
         context.bot.send_message(
-            chat_id=user, text='_Now monitoring_ {} _every 1 minute_'.format(site), parse_mode=telegram.ParseMode.MARKDOWN)
+            chat_id=user, text='_Now monitoring_ {} _every 1 minute_'.format(site), parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
     except Exception as e:
         context.bot.send_message(
             chat_id=user, text='_{}_'.format(e), parse_mode=telegram.ParseMode.MARKDOWN)
@@ -92,6 +103,7 @@ def addsite(update, context):
 
 @run_async
 def scheduler():
+    check()
     schedule.every(1).minutes.do(check)
     while True:
         schedule.run_pending()
@@ -109,13 +121,16 @@ def check():
 @run_async
 def ping(site, user):
     try:
-        r = requests.get(site, timeout=10)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36"}
+        r = requests.get(site, headers=headers, timeout=10)
         if r.status_code == 200:
             if (site in badset) or (site in downset):
                 badset.discard(site)
                 downset.discard(site)
                 bot.send_message(chat_id=user, text='*Service Restored: *{} is now online'.format(
                     site), parse_mode=telegram.ParseMode.MARKDOWN)
+                return
         else:
             code = str(r.status_code)
             if site in badset:
@@ -123,15 +138,33 @@ def ping(site, user):
                     downset.discard(site)
                     bot.send_message(chat_id=user, text='*Service Restored: *{} is now online with HTTP {} error'.format(
                         site, code), parse_mode=telegram.ParseMode.MARKDOWN)
+                    return
             else:
                 badset.add(site)
                 bot.send_message(chat_id=user, text='*Incident Detected: *HTTP {} error on {}'.format(
                     code, site), parse_mode=telegram.ParseMode.MARKDOWN)
+                return
+        soup = str(BeautifulSoup(r.text).body)
+        global cache
+        if site not in cache:
+            cache[site] = soup
+            with open('cache.json', 'w') as cachefile:
+                json.dump(cache, cachefile)
+            bot.send_message(
+                chat_id=user, text='{} *is now being monitored for code changes*\n\nWARNING: Misuse of this service may result in a ban'.format(site), parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+            bot.send_message(
+                chat_id=user, text='_Use /start if you wish to reset your list of websites_', parse_mode=telegram.ParseMode.MARKDOWN)
+        elif cache[site] != soup:
+            bot.send_message(
+                chat_id=user, text='*ALERT:* Code changes were detected on {}'.format(site), parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+            cache[site] = soup
+            with open('cache.json', 'w') as cachefile:
+                json.dump(cache, cachefile)
     except Exception as e:
         if site not in downset:
             downset.add(site)
             bot.send_message(chat_id=user, text='*ALERT: *{} is down\n\n_{}_'.format(site, e),
-                             parse_mode=telegram.ParseMode.MARKDOWN)
+                             parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
         global revival
         if 'testpoint' in site and revival == False:
             revival = True
